@@ -12,9 +12,9 @@ from __future__ import division, absolute_import, print_function
 
 
 __all__ = ['matrix_power', 'solve', 'tensorsolve', 'tensorinv', 'inv',
-           'cholesky', 'eigvals', 'eigvalsh', 'pinv', 'slogdet', 'det',
-           'svd', 'eig', 'eigh', 'lstsq', 'norm', 'qr', 'cond', 'matrix_rank',
-           'LinAlgError', 'multi_dot']
+           'cholesky', 'ldl', 'eigvals', 'eigvalsh', 'pinv', 'slogdet',
+           'det', 'svd', 'eig', 'eigh', 'lstsq', 'norm', 'qr', 'cond',
+           'matrix_rank', 'LinAlgError', 'multi_dot']
 
 import warnings
 
@@ -607,6 +607,27 @@ def cholesky(a):
     t, result_t = _commonType(a)
     signature = 'D->D' if isComplexType(t) else 'd->d'
     return wrap(gufunc(a, signature=signature, extobj=extobj).astype(result_t))
+
+
+# LDL decomposition
+
+def ldl(a):
+    """
+    LDL decomposition.
+    """
+    extobj = get_linalg_error_extobj(_raise_linalgerror_singular)
+    gufunc = _umath_linalg.ldl_lo
+    a = a.real
+    a, wrap = _makearray(a)
+    _assertRankAtLeast2(a)
+    _assertNdSquareness(a)
+    t, result_t = _commonType(a)
+    signature = 'd->dd'
+    l, d = gufunc(a, signature=signature, extobj=extobj)
+    l = l.astype(result_t)
+    d = d.astype(result_t)
+    return wrap(l), wrap(d)
+
 
 # QR decompostion
 
