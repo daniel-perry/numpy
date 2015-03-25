@@ -617,12 +617,11 @@ def ldl(a):
     """
     extobj = get_linalg_error_extobj(_raise_linalgerror_singular)
     gufunc = _umath_linalg.ldl_lo
-    a = a.real
     a, wrap = _makearray(a)
     _assertRankAtLeast2(a)
     _assertNdSquareness(a)
     t, result_t = _commonType(a)
-    signature = 'd->dd'
+    signature = 'D->DD' if isComplexType(t) else 'd->dd'
     l, d = gufunc(a, signature=signature, extobj=extobj)
     l = l.astype(result_t)
     d = d.astype(result_t)
