@@ -12,9 +12,9 @@ from __future__ import division, absolute_import, print_function
 
 
 __all__ = ['matrix_power', 'solve', 'tensorsolve', 'tensorinv', 'inv',
-           'cholesky', 'eigvals', 'eigvalsh', 'pinv', 'slogdet', 'det',
-           'svd', 'eig', 'eigh', 'lstsq', 'norm', 'qr', 'cond', 'matrix_rank',
-           'LinAlgError', 'multi_dot']
+           'cholesky', 'ldl', 'eigvals', 'eigvalsh', 'pinv', 'slogdet',
+           'det', 'svd', 'eig', 'eigh', 'lstsq', 'norm', 'qr', 'cond',
+           'matrix_rank', 'LinAlgError', 'multi_dot']
 
 import warnings
 
@@ -611,6 +611,72 @@ def cholesky(a):
     signature = 'D->D' if isComplexType(t) else 'd->d'
     r = gufunc(a, signature=signature, extobj=extobj)
     return wrap(r.astype(result_t, copy=False))
+
+
+# LDL decomposition
+
+def ldl(a):
+    """
+    LDL decomposition.
+
+    Compute the LDL decomposition `L * D * L.H` of the square matrix `a`
+    using the Bunch-Kaufman diagonal pivoting method.  `L` is a product of
+    permutation and unit lower-triangular matrices, D is Hermitian and block
+    diagonal with 1-by-1 and 2-by-2 diagonal blocks, and .H is the conjugate
+    transpose operator. `a` must be Hermitian, but need not be positive
+    definite.  When `a` is positive definite, D is strictly diagonal (without
+    2-by-2 blocks) and `L` is a true lower-triangular matrix.
+
+    Parameters
+    ----------
+    a : (..., M, M) array_like
+        Hermitian (symmetric if all elements are real) input matrix.
+
+    Returns
+    -------
+    L : (..., M, M) array_like
+        Permuted lower-triangular factor of `a`.  Returns a true unit lower-
+        triangular matrix if `a` is positive definite.  Returns a matrix object
+        if `a` is a matrix object.
+
+    D : (..., M, M) array_like
+        Hermitian block diagonal factor of `a`, with 1-by-1 and 2-by-2 blocks.
+        Returns a true diagonal matrix if `a` is positive definite.  Returns a
+        matrix object if `a` is a matrix object.
+
+    Raises
+    ------
+    LinAlgError
+       If the decomposition fails, for example, if `a` is singular or not
+        square.
+
+    Notes
+    -----
+    Broadcasting rules apply, see the `numpy.linalg` documentation for
+    details.
+
+    This is an interface to the _sytrf and _hetrf LAPACK routines, which use
+    the Bunch-Kaufman diagonal pivoting method [1]_ to factor the matrix `a`.
+    This function reconstructs the full `L` and `D` matrices from the combined
+    representation produced by the _sytrf and _hetrf functions.
+
+    References
+    ----------
+    .. [1] G. H. Golub and C. F. Van Loan, *Matrix Computations*, 4th Ed.
+           Baltimore, MD, Johns Hopkins University Press, 2013, pg. 192
+    """
+    extobj = get_linalg_error_extobj(_raise_linalgerror_singular)
+    gufunc = _umath_linalg.ldl_lo
+    a, wrap = _makearray(a)
+    _assertRankAtLeast2(a)
+    _assertNdSquareness(a)
+    t, result_t = _commonType(a)
+    signature = 'D->DD' if isComplexType(t) else 'd->dd'
+    l, d = gufunc(a, signature=signature, extobj=extobj)
+    l = l.astype(result_t)
+    d = d.astype(result_t)
+    return wrap(l), wrap(d)
+
 
 # QR decompostion
 
